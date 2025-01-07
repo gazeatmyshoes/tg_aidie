@@ -1,66 +1,66 @@
-# AI Diary Bot
+# AI-Дневник Бот
 
-AI Diary Bot is a Telegram bot designed to help users maintain a personal diary using artificial intelligence. The bot includes features such as voice input, automatic reflection questions, sentiment analysis, goal tracking, and psychology-based recommendations. All user actions are accessible through a visual menu using Inline Keyboard.
+AI-Дневник Бот — это Telegram-бот, разработанный для помощи пользователям в ведении личного дневника с использованием искусственного интеллекта. Бот включает в себя функции голосового ввода, автоматических вопросов для рефлексии, анализа настроений, отслеживания целей и рекомендаций на основе психологии. Все действия пользователя доступны через визуальное меню с использованием Inline Keyboard.
 
-## Features
+## Функции
 
-1. **Voice Input (Speech-to-Text)**
-   - Converts voice messages to text using Google Cloud Speech-to-Text API.
+1. **Голосовой ввод (Speech-to-Text)**
+   - Преобразует голосовые сообщения в текст с использованием Google Cloud Speech-to-Text API.
 
-2. **Automatic Reflection Questions**
-   - Sends random reflection questions to the user.
+2. **Автоматические вопросы для рефлексии**
+   - Отправляет пользователю случайные вопросы для рефлексии.
 
-3. **Sentiment Analysis**
-   - Analyzes the sentiment of the user's text using Google Cloud Natural Language API.
+3. **Анализ настроений**
+   - Анализирует настроение текста пользователя с использованием Google Cloud Natural Language API.
 
-4. **Goal Setting and Tracking**
-   - Helps users set and track personal goals.
+4. **Постановка и отслеживание целей**
+   - Помогает пользователям устанавливать и отслеживать личные цели.
 
-5. **Psychology-Based Recommendations**
-   - Provides psychological advice and recommendations to improve mood and productivity.
+5. **Рекомендации на основе психологии**
+   - Предоставляет психологические советы и рекомендации для улучшения настроения и продуктивности.
 
-6. **Visual Menu with Inline Keyboard**
-   - All main functions are accessible through a visual menu with buttons.
+6. **Визуальное меню с Inline Keyboard**
+   - Все основные функции доступны через визуальное меню с кнопками.
 
-## Installation
+## Установка
 
-1. Clone the repository:
+1. Клонируйте репозиторий:
    ```bash
    git clone https://github.com/gazeatmyshoes/tg_aidie.git
    cd tg_aidie
    ```
 
-2. Install the required dependencies:
+2. Установите необходимые зависимости:
    ```bash
    pip install -r requirements.txt
    ```
 
-3. Set up Google Cloud:
-   - Create a project in Google Cloud and enable the Speech-to-Text and Natural Language APIs.
-   - Download the service account key file and set the `GOOGLE_APPLICATION_CREDENTIALS` environment variable.
+3. Настройте Google Cloud:
+   - Создайте проект в Google Cloud и включите API для Speech-to-Text и Natural Language.
+   - Скачайте файл ключа учетной записи службы и установите переменную окружения `GOOGLE_APPLICATION_CREDENTIALS`.
 
-4. Set up Firebase:
-   - Create a project in Firebase and set up a database for storing user goals.
-   - Download the Firebase service account key file and initialize Firebase Admin SDK.
+4. Настройте Firebase:
+   - Создайте проект в Firebase и настройте базу данных для хранения целей пользователей.
+   - Скачайте файл ключа учетной записи службы Firebase и инициализируйте Firebase Admin SDK.
 
-5. Run the bot:
+5. Запустите бота:
    ```bash
    python run_bot.py
    ```
 
-## Requirements
+## Требования
 
-- Python 3.8 or higher
+- Python 3.8 или выше
 - `python-telegram-bot`
 - `google-cloud-speech`
 - `google-cloud-language`
 - `firebase-admin`
 
-## Usage
+## Использование
 
-- Start the bot by sending the `/start` command.
-- Use the visual menu to interact with the bot's features.
+- Запустите бота, отправив команду `/start`.
+- Используйте визуальное меню для взаимодействия с функциями бота.
 
-## License
+## Лицензия
 
-This project is licensed under the MIT License.
+Этот проект лицензирован по лицензии MIT.
