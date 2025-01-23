@@ -7,24 +7,58 @@ from bot.main import main
 
 def setup_logging():
     """Настройка логирования"""
-    # Создаем директорию для логов, если её нет
-    os.makedirs('logs', exist_ok=True)
-    
-    # Настраиваем формат логирования
-    log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    
-    # Настраиваем обработчики
-    handlers = [
-        logging.FileHandler('logs/bot.log'),
-        logging.StreamHandler(sys.stdout)
-    ]
-    
-    # Применяем настройки
-    logging.basicConfig(
-        level=logging.INFO,
-        format=log_format,
-        handlers=handlers
-    )
+    try:
+        # Создаем директории для логов
+        os.makedirs('logs', exist_ok=True)
+        os.makedirs('logs/debug', exist_ok=True)
+        
+        # Форматтеры для разных уровней логирования
+        detailed_formatter = logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(funcName)s - %(message)s'
+        )
+        simple_formatter = logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        )
+        
+        # Основной файл лога (INFO и выше)
+        main_handler = logging.FileHandler('logs/bot.log')
+        main_handler.setLevel(logging.INFO)
+        main_handler.setFormatter(simple_formatter)
+        
+        # Файл отладки (все сообщения)
+        debug_handler = logging.FileHandler('logs/debug/bot_debug.log')
+        debug_handler.setLevel(logging.DEBUG)
+        debug_handler.setFormatter(detailed_formatter)
+        
+        # Вывод в консоль (INFO и выше)
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setLevel(logging.INFO)
+        console_handler.setFormatter(simple_formatter)
+        
+        # Настройка корневого логгера
+        root_logger = logging.getLogger()
+        root_logger.setLevel(logging.DEBUG)
+        
+        # Очищаем существующие обработчики
+        root_logger.handlers = []
+        
+        # Добавляем обработчики
+        root_logger.addHandler(main_handler)
+        root_logger.addHandler(debug_handler)
+        root_logger.addHandler(console_handler)
+        
+        # Настраиваем логгеры сторонних библиотек
+        logging.getLogger('telegram').setLevel(logging.INFO)
+        logging.getLogger('urllib3').setLevel(logging.INFO)
+        logging.getLogger('google').setLevel(logging.INFO)
+        logging.getLogger('firebase_admin').setLevel(logging.INFO)
+        
+        logger = logging.getLogger(__name__)
+        logger.info("Логирование успешно настроено")
+        
+    except Exception as e:
+        print(f"Ошибка при настройке логирования: {str(e)}")
+        raise
 
 def main_with_checks():
     """Запуск бота с проверкой всех необходимых API"""

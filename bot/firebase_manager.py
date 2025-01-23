@@ -10,28 +10,72 @@ class FirebaseManager:
     def init_database():
         """Инициализация базы данных и создание необходимых индексов"""
         try:
+            logger.info("Начало инициализации базы данных Firebase")
+            
+            # Создаем базовые пути, если их нет
+            root_ref = db.reference('/')
+            data = root_ref.get()
+            
+            if not data:
+                logger.info("Инициализация базовой структуры базы данных")
+                initial_data = {
+                    'diary': {},
+                    'goals': {},
+                    'metadata': {
+                        'created_at': datetime.now().isoformat(),
+                        'version': '1.0'
+                    }
+                }
+                root_ref.set(initial_data)
+            
             # Создаем правила для индексации
+            logger.info("Настройка правил базы данных")
             rules = {
                 "rules": {
+                    ".read": "auth != null",
+                    ".write": "auth != null",
                     "diary": {
                         "$user_id": {
-                            ".indexOn": ["timestamp"]
+                            ".read": "auth != null",
+                            ".write": "auth != null",
+                            ".indexOn": ["timestamp"],
+                            "$entry_id": {
+                                ".validate": "newData.hasChildren(['text', 'timestamp', 'sentiment_score', 'sentiment_magnitude'])"
+                            }
                         }
                     },
                     "goals": {
                         "$user_id": {
-                            ".indexOn": ["created_at", "completed"]
+                            ".read": "auth != null",
+                            ".write": "auth != null",
+                            ".indexOn": ["created_at", "completed"],
+                            "$goal_id": {
+                                ".validate": "newData.hasChildren(['text', 'created_at', 'completed'])"
+                            }
                         }
                     }
                 }
             }
             
             # Применяем правила
-            db.reference('/').set_rules(rules)
-            logger.info("Firebase rules updated successfully")
+            logger.info("Применение правил базы данных")
+            try:
+                root_ref.set_rules(rules)
+                logger.info("Правила базы данных успешно обновлены")
+            except Exception as rules_error:
+                logger.warning(f"Не удалось обновить правила базы данных: {str(rules_error)}")
+                logger.info("Продолжаем работу с существующими правилами")
+            
+            # Проверяем подключение
+            test_ref = db.reference('test')
+            test_ref.set({'test': True})
+            test_ref.delete()
+            
+            logger.info("База данных успешно инициализирована")
             return True
+            
         except Exception as e:
-            logger.error(f"Error initializing database: {str(e)}")
+            logger.error(f"Ошибка при инициализации базы данных: {str(e)}", exc_info=True)
             return False
 
     @staticmethod
