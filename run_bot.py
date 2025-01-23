@@ -1,45 +1,61 @@
 import os
-from dotenv import load_dotenv
-from bot.main import main
+import sys
 import logging
+from bot.config import get_config
+from bot.api_checker import APIChecker
+from bot.main import main
 
-if __name__ == '__main__':
-    # Настройка логирования
+def setup_logging():
+    """Настройка логирования"""
+    # Создаем директорию для логов, если её нет
+    os.makedirs('logs', exist_ok=True)
+    
+    # Настраиваем формат логирования
+    log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    
+    # Настраиваем обработчики
+    handlers = [
+        logging.FileHandler('logs/bot.log'),
+        logging.StreamHandler(sys.stdout)
+    ]
+    
+    # Применяем настройки
     logging.basicConfig(
         level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.FileHandler('bot.log'),
-            logging.StreamHandler()
-        ]
+        format=log_format,
+        handlers=handlers
     )
+
+def main_with_checks():
+    """Запуск бота с проверкой всех необходимых API"""
     logger = logging.getLogger(__name__)
-
+    
     try:
-        # Загрузка переменных окружения из .env файла
-        load_dotenv()
-
-        # Проверка наличия необходимых переменных окружения
-        required_env_vars = [
-            'TELEGRAM_BOT_TOKEN',
-            'GOOGLE_CLOUD_PROJECT_ID',
-            'GOOGLE_APPLICATION_CREDENTIALS',
-            'FIREBASE_DATABASE_URL',
-            'FIREBASE_CREDENTIALS_PATH'
-        ]
-
-        missing_vars = [var for var in required_env_vars if not os.getenv(var)]
+        # Загружаем конфигурацию
+        logger.info("🔄 Загрузка конфигурации...")
+        config = get_config()
         
-        if missing_vars:
-            raise ValueError(
-                f"Missing required environment variables: {', '.join(missing_vars)}\n"
-                "Please check your .env file or environment variables."
-            )
-
-        # Запуск бота
-        logger.info("Starting the bot...")
+        # Проверяем все API
+        logger.info("🔄 Проверка API...")
+        checker = APIChecker()
+        apis_ok, errors = checker.check_all_apis(config)
+        
+        if not apis_ok:
+            error_message = checker.format_error_message(errors)
+            logger.error(error_message)
+            sys.exit(1)
+        
+        # Запускаем бота
+        logger.info("🚀 Запуск бота...")
         main()
 
     except Exception as e:
-        logger.error(f"Failed to start the bot: {str(e)}")
-        raise
+        logger.error(f"❌ Критическая ошибка: {str(e)}")
+        sys.exit(1)
+
+if __name__ == '__main__':
+    # Настраиваем логирование
+    setup_logging()
+    
+    # Запускаем бота с проверками
+    main_with_checks()
