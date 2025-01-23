@@ -4,7 +4,7 @@ from datetime import datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
 from telegram.ext import CallbackContext
 from google.cloud import language_v1
-from firebase_admin import db
+from .firebase_manager import FirebaseManager
 from .speech_to_text import transcribe_audio
 from .config import MAX_AUDIO_DURATION
 
@@ -47,11 +47,18 @@ def start_command(update: Update, context: CallbackContext):
 def analyze_text_sentiment(text: str) -> tuple:
     """Анализ настроения текста с помощью Google Natural Language API"""
     try:
+        from googletrans import Translator
+        
+        # Переводим текст на английский для анализа настроения
+        translator = Translator()
+        translated = translator.translate(text, dest='en')
+        
+        # Анализируем настроение переведенного текста
         client = language_v1.LanguageServiceClient()
         document = language_v1.Document(
-            content=text,
+            content=translated.text,
             type_=language_v1.Document.Type.PLAIN_TEXT,
-            language='ru'
+            language='en'
         )
         sentiment = client.analyze_sentiment(
             request={'document': document}
@@ -78,19 +85,9 @@ def get_mood_emoji(score: float) -> str:
 def save_diary_entry(user_id: int, text: str, sentiment_score: float, 
                     sentiment_magnitude: float) -> bool:
     """Сохранение записи в дневник"""
-    try:
-        ref = db.reference(f'diary/{user_id}')
-        entry = {
-            'text': text,
-            'timestamp': datetime.now().isoformat(),
-            'sentiment_score': sentiment_score,
-            'sentiment_magnitude': sentiment_magnitude
-        }
-        ref.push(entry)
-        return True
-    except Exception as e:
-        logger.error(f"Ошибка при сохранении записи: {str(e)}")
-        return False
+    return FirebaseManager.save_diary_entry(
+        user_id, text, sentiment_score, sentiment_magnitude
+    )
 
 def handle_text_message(update: Update, context: CallbackContext):
     """Обработчик текстовых сообщений"""
@@ -99,7 +96,33 @@ def handle_text_message(update: Update, context: CallbackContext):
     logger.info(f"Получено текстовое сообщение от пользователя {user.id}: {text[:50]}...")
 
     try:
-        # Анализируем настроение
+        # Проверяем, ожидаем ли мы новую цель от пользователя
+        if context.user_data.get('waiting_for_goal'):
+            logger.info(f"Добавление новой цели для пользователя {user.id}")
+            if FirebaseManager.add_goal(user.id, text):
+                response = "✅ Цель успешно добавлена!"
+            else:
+                response = "❌ Произошла ошибка при добавлении цели."
+            
+            # Сбрасываем флаг ожидания цели
+            context.user_data['waiting_for_goal'] = False
+            
+            # Показываем обновленный список целей
+            goals = FirebaseManager.get_goals(user.id)
+            if goals:
+                response += "\n\n🎯 <b>Ваши текущие цели</b>:\n\n"
+                for i, goal in enumerate(goals, 1):
+                    status = "✅" if goal.get('completed') else "🔲"
+                    response += f"{status} {i}. {goal['text']}\n"
+            
+            update.message.reply_text(
+                response,
+                parse_mode=ParseMode.HTML,
+                reply_markup=get_main_keyboard()
+            )
+            return
+
+        # Обычная обработка текстового сообщения
         score, magnitude = analyze_text_sentiment(text)
         mood_emoji = get_mood_emoji(score)
         
@@ -231,56 +254,40 @@ def handle_callback_query(update: Update, context: CallbackContext):
 
 def get_user_goals(user_id: int) -> list:
     """Получение списка целей пользователя"""
-    try:
-        ref = db.reference(f'goals/{user_id}')
-        goals = ref.get()
-        if goals:
-            return [{'text': goal['text'], 'completed': goal.get('completed', False)}
-                   for goal in goals.values()]
-        return []
-    except Exception as e:
-        logger.error(f"Ошибка при получении целей пользователя {user_id}: {str(e)}")
-        return []
+    return FirebaseManager.get_goals(user_id)
 
 def analyze_user_mood_history(user_id: int) -> dict:
     """Анализ истории настроения пользователя"""
-    try:
-        ref = db.reference(f'diary/{user_id}')
-        entries = ref.order_by_child('timestamp').limit_to_last(7).get()
-        
-        if not entries:
-            return None
-
-        scores = [entry['sentiment_score'] for entry in entries.values()]
-        avg_score = sum(scores) / len(scores)
-        
-        # Определяем преобладающее настроение
-        if avg_score >= 0.5:
-            dominant_mood = "Очень позитивное 😊"
-            recommendation = "Отличная работа! Продолжайте делиться позитивом!"
-        elif avg_score >= 0.1:
-            dominant_mood = "Позитивное 🙂"
-            recommendation = "Хорошее настроение! Запишите, что помогает вам оставаться позитивным."
-        elif avg_score > -0.1:
-            dominant_mood = "Нейтральное 😐"
-            recommendation = "Попробуйте обратить внимание на приятные моменты дня."
-        elif avg_score > -0.5:
-            dominant_mood = "Негативное 😕"
-            recommendation = "Запишите, что вас беспокоит. Это поможет лучше понять свои эмоции."
-        else:
-            dominant_mood = "Очень негативное 😢"
-            recommendation = "Рекомендуем поговорить с близкими или обратиться к специалисту."
-
-        return {
-            'avg_score': avg_score,
-            'dominant_mood': dominant_mood,
-            'entries_count': len(entries),
-            'recommendation': recommendation
-        }
-
-    except Exception as e:
-        logger.error(f"Ошибка при анализе настроения пользователя {user_id}: {str(e)}")
+    entries = FirebaseManager.get_mood_history(user_id)
+    if not entries:
         return None
+
+    scores = [entry['sentiment_score'] for entry in entries]
+    avg_score = sum(scores) / len(scores)
+    
+    # Определяем преобладающее настроение
+    if avg_score >= 0.5:
+        dominant_mood = "Очень позитивное 😊"
+        recommendation = "Отличная работа! Продолжайте делиться позитивом!"
+    elif avg_score >= 0.1:
+        dominant_mood = "Позитивное 🙂"
+        recommendation = "Хорошее настроение! Запишите, что помогает вам оставаться позитивным."
+    elif avg_score > -0.1:
+        dominant_mood = "Нейтральное 😐"
+        recommendation = "Попробуйте обратить внимание на приятные моменты дня."
+    elif avg_score > -0.5:
+        dominant_mood = "Негативное 😕"
+        recommendation = "Запишите, что вас беспокоит. Это поможет лучше понять свои эмоции."
+    else:
+        dominant_mood = "Очень негативное 😢"
+        recommendation = "Рекомендуем поговорить с близкими или обратиться к специалисту."
+
+    return {
+        'avg_score': avg_score,
+        'dominant_mood': dominant_mood,
+        'entries_count': len(entries),
+        'recommendation': recommendation
+    }
 
 def handle_voice(update: Update, context: CallbackContext):
     """Обработчик голосовых сообщений"""

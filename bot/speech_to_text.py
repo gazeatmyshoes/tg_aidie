@@ -20,7 +20,8 @@ def transcribe_audio(file_path):
         # Используем конфигурацию из config.py
         config = speech.RecognitionConfig(
             encoding=speech.RecognitionConfig.AudioEncoding.OGG_OPUS,
-            **SPEECH_TO_TEXT_CONFIG
+            sample_rate_hertz=SPEECH_TO_TEXT_CONFIG['sample_rate_hertz'],
+            language_code=SPEECH_TO_TEXT_CONFIG['language_code']
         )
 
         response = client.recognize(config=config, audio=audio)
