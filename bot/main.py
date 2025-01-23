@@ -8,6 +8,7 @@ from .handlers import (
     handle_callback_query
 )
 from .config import TELEGRAM_BOT_TOKEN
+from .firebase_manager import FirebaseManager
 
 # Настройка логирования
 logger = logging.getLogger(__name__)
@@ -24,6 +25,12 @@ def error_handler(update, context):
 def main():
     """Основная функция запуска бота"""
     logger.info("Инициализация бота...")
+    
+    # Инициализация Firebase
+    logger.info("Инициализация Firebase...")
+    if not FirebaseManager.init_database():
+        logger.error("Ошибка при инициализации Firebase")
+        return
     
     # Инициализация бота
     updater = Updater(TELEGRAM_BOT_TOKEN, use_context=True)
