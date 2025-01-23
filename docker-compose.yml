@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  bot:
+    build: .
+    container_name: aidie-bot
+    restart: unless-stopped
+    volumes:
+      - ./keys:/app/keys:ro  # Монтируем директорию с ключами только для чтения
+      - ./logs:/app/logs     # Монтируем директорию для логов
+      - ./temp:/app/temp     # Монтируем временную директорию
+    env_file:
+      - .env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - TZ=Europe/Moscow
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os; assert os.path.exists('/app/temp') and os.path.exists('/app/keys') and os.path.exists('/app/logs')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
