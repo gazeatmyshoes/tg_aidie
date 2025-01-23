@@ -45,28 +45,52 @@ def start_command(update: Update, context: CallbackContext):
     )
 
 def analyze_text_sentiment(text: str) -> tuple:
-    """Анализ настроения текста с помощью Google Natural Language API"""
-    try:
-        from googletrans import Translator
+    """
+    Анализ настроения текста с помощью Google Natural Language API
+    
+    Args:
+        text (str): Текст для анализа
         
-        # Переводим текст на английский для анализа настроения
-        translator = Translator()
-        translated = translator.translate(text, dest='en')
+    Returns:
+        tuple: (sentiment_score, sentiment_magnitude)
+    """
+    try:
+        logger.info("Начало анализа настроения текста")
+        logger.debug(f"Исходный текст: {text[:100]}...")
+        
+        # Используем Cloud Translation API вместо googletrans
+        from google.cloud import translate_v2 as translate
+        translate_client = translate.Client()
+        
+        # Переводим текст на английский
+        logger.info("Перевод текста на английский")
+        translation = translate_client.translate(
+            text,
+            target_language='en',
+            source_language='ru'
+        )
+        
+        translated_text = translation['translatedText']
+        logger.debug(f"Переведенный текст: {translated_text[:100]}...")
         
         # Анализируем настроение переведенного текста
+        logger.info("Анализ настроения переведенного текста")
         client = language_v1.LanguageServiceClient()
         document = language_v1.Document(
-            content=translated.text,
+            content=translated_text,
             type_=language_v1.Document.Type.PLAIN_TEXT,
             language='en'
         )
+        
         sentiment = client.analyze_sentiment(
             request={'document': document}
         ).document_sentiment
         
+        logger.info(f"Результаты анализа: score={sentiment.score:.2f}, magnitude={sentiment.magnitude:.2f}")
         return sentiment.score, sentiment.magnitude
+        
     except Exception as e:
-        logger.error(f"Ошибка при анализе настроения: {str(e)}")
+        logger.error(f"Ошибка при анализе настроения: {str(e)}", exc_info=True)
         return 0, 0
 
 def get_mood_emoji(score: float) -> str:
