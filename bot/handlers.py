@@ -5,6 +5,31 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ParseMo
 from telegram.ext import CallbackContext
 from google.cloud import language_v1
 from google.api_core.exceptions import InvalidArgument
+from .locales import get_translation
+from typing import Optional
+
+SUPPORTED_LANGUAGES = {
+    'ru': 'russian',
+    'en': 'english',
+    'es': 'spanish',
+    'fr': 'french',
+    'de': 'german',
+    'zh': 'chinese'
+}
+
+def detect_language(text: str) -> Optional[str]:
+    """Определение языка текста"""
+    try:
+        client = language_v1.LanguageServiceClient()
+        document = language_v1.Document(
+            content=text,
+            type_=language_v1.Document.Type.PLAIN_TEXT
+        )
+        response = client.analyze_sentiment(request={'document': document})
+        return response.language
+    except Exception:
+        return None
+from google.api_core.exceptions import InvalidArgument
 from .firebase_manager import FirebaseManager
 from .speech_to_text import transcribe_audio
 from .config import MAX_AUDIO_DURATION
@@ -21,6 +46,29 @@ def get_main_keyboard():
     ])
 
 def start_command(update: Update, context: CallbackContext):
+    """Обработчик команды /start"""
+    user = update.effective_user
+    logger.info(f"Пользователь {user.id} (@{user.username}) запустил бота")
+    
+    # Устанавливаем язык по умолчанию
+    context.user_data['language'] = 'ru'
+    
+    welcome_text = get_translation('welcome', lang='ru', name=user.first_name)
+    menu_text = get_translation('menu', lang='ru')
+    
+    keyboard = [
+        [InlineKeyboardButton(get_translation('new_entry', lang='ru'), callback_data='new_entry')],
+        [InlineKeyboardButton(get_translation('goals', lang='ru'), callback_data='goals')],
+        [InlineKeyboardButton(get_translation('mood_analysis', lang='ru'), callback_data='mood_analysis')],
+        [InlineKeyboardButton("🌐 Язык / Language", callback_data='change_language')]
+    ]
+    
+    logger.info(f"Отправка приветственного сообщения пользователю {user.id}")
+    update.message.reply_text(
+        welcome_text + "\n\n" + menu_text,
+        reply_markup=InlineKeyboardMarkup(keyboard),
+        parse_mode=ParseMode.HTML
+    )
     """Обработчик команды /start"""
     user = update.effective_user
     logger.info(f"Пользователь {user.id} (@{user.username}) запустил бота")
@@ -225,6 +273,52 @@ def handle_text_message(update: Update, context: CallbackContext):
         )
 
 def handle_callback_query(update: Update, context: CallbackContext):
+    """Обработчик callback-запросов от кнопок"""
+    query = update.callback_query
+    user = query.from_user
+    logger.info(f"Получен callback-запрос от пользователя {user.id}: {query.data}")
+
+    try:
+        # Отправляем уведомление о получении запроса
+        query.answer()
+
+        # Получаем текущий язык пользователя
+        lang = context.user_data.get('language', 'ru')
+
+        if query.data == 'new_entry':
+            text = get_translation('new_entry_text', lang)
+            query.edit_message_text(
+                text,
+                parse_mode=ParseMode.HTML,
+                reply_markup=InlineKeyboardMarkup([[
+                    InlineKeyboardButton(get_translation('back', lang), callback_data='back_to_menu')
+                ]])
+            )
+
+        elif query.data == 'change_language':
+            keyboard = [
+                [InlineKeyboardButton("🇷🇺 Русский", callback_data='set_language_ru')],
+                [InlineKeyboardButton("🇺🇸 English", callback_data='set_language_en')],
+                [InlineKeyboardButton("🇪🇸 Español", callback_data='set_language_es')],
+                [InlineKeyboardButton("🇫🇷 Français", callback_data='set_language_fr')],
+                [InlineKeyboardButton("🇩🇪 Deutsch", callback_data='set_language_de')],
+                [InlineKeyboardButton("🇨🇳 中文", callback_data='set_language_zh')],
+                [InlineKeyboardButton(get_translation('back', lang), callback_data='back_to_menu')]
+            ]
+            query.edit_message_text(
+                get_translation('choose_language', lang),
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+
+        elif query.data.startswith('set_language_'):
+            new_lang = query.data.split('_')[-1]
+            context.user_data['language'] = new_lang
+            query.edit_message_text(
+                get_translation('language_changed', new_lang),
+                reply_markup=get_main_keyboard(new_lang)
+            )
+
+        # Остальные обработчики callback-запросов...
     """Обработчик callback-запросов от кнопок"""
     query = update.callback_query
     user = query.from_user
