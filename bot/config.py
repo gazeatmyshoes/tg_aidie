@@ -7,8 +7,15 @@ logger = logging.getLogger(__name__)
 
 def get_config() -> Dict[str, Any]:
     """Загрузка и проверка конфигурации"""
+    # Проверка наличия файла .env
+    if not os.path.exists('.env'):
+        error_msg = "❌ Файл .env не найден. Пожалуйста, создайте его и добавьте необходимые переменные."
+        logger.error(error_msg)
+        raise FileNotFoundError(error_msg)
+
     # Загрузка переменных окружения
     load_dotenv()
+    logger.info("✅ Переменные окружения успешно загружены из .env")
 
     config = {
         # Telegram Bot configuration
@@ -67,6 +74,7 @@ def get_config() -> Dict[str, Any]:
         'language_code': config['LANGUAGE_CODE'],
     }
 
+    logger.info("✅ Конфигурация успешно загружена и проверена")
     return config
 
 # Загружаем конфигурацию при импорте модуля
