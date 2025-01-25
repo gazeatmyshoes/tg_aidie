@@ -18,10 +18,10 @@ class APIChecker:
     def check_telegram_api(self, token: str) -> bool:
         """Проверка Telegram Bot API"""
         try:
-            logger.info("Проверка Telegram Bot API...")
+            logger.info("🔄 Проверка Telegram Bot API...")
             response = requests.post(f"https://api.telegram.org/bot{token}/getMe")
             if response.status_code != 200:
-                error_msg = f"Ошибка Telegram API: {response.text}"
+                error_msg = f"❌ Ошибка Telegram API: {response.text}"
                 self.errors.append(error_msg)
                 logger.error(error_msg)
                 return False
@@ -31,7 +31,7 @@ class APIChecker:
             return True
             
         except Exception as e:
-            error_msg = f"Ошибка при проверке Telegram API: {str(e)}"
+            error_msg = f"❌ Ошибка при проверке Telegram API: {str(e)}"
             self.errors.append(error_msg)
             logger.error(error_msg)
             return False
@@ -39,11 +39,11 @@ class APIChecker:
     def check_google_cloud(self, credentials_path: str) -> bool:
         """Проверка Google Cloud API"""
         try:
-            logger.info("Проверка Google Cloud API...")
+            logger.info("🔄 Проверка Google Cloud API...")
             
             # Проверка наличия файла с учетными данными
             if not os.path.exists(credentials_path):
-                error_msg = f"Файл учетных данных Google Cloud не найден: {credentials_path}"
+                error_msg = f"❌ Файл учетных данных Google Cloud не найден: {credentials_path}"
                 self.errors.append(error_msg)
                 logger.error(error_msg)
                 return False
@@ -59,7 +59,7 @@ class APIChecker:
             return True
 
         except Exception as e:
-            error_msg = f"Ошибка при проверке Google Cloud API: {str(e)}"
+            error_msg = f"❌ Ошибка при проверке Google Cloud API: {str(e)}"
             self.errors.append(error_msg)
             logger.error(error_msg)
             return False
@@ -67,11 +67,11 @@ class APIChecker:
     def check_firebase(self, credentials_path: str, database_url: str) -> bool:
         """Проверка Firebase API"""
         try:
-            logger.info("Проверка Firebase API...")
+            logger.info("🔄 Проверка Firebase API...")
             
             # Проверка наличия файла с учетными данными
             if not os.path.exists(credentials_path):
-                error_msg = f"Файл учетных данных Firebase не найден: {credentials_path}"
+                error_msg = f"❌ Файл учетных данных Firebase не найден: {credentials_path}"
                 self.errors.append(error_msg)
                 logger.error(error_msg)
                 return False
@@ -95,7 +95,7 @@ class APIChecker:
             # Проверка чтения данных
             read_data = ref.get()
             if read_data != test_data:
-                error_msg = "Ошибка при проверке записи/чтения Firebase"
+                error_msg = "❌ Ошибка при проверке записи/чтения Firebase"
                 self.errors.append(error_msg)
                 logger.error(error_msg)
                 return False
@@ -104,7 +104,7 @@ class APIChecker:
             return True
 
         except Exception as e:
-            error_msg = f"Ошибка при проверке Firebase API: {str(e)}"
+            error_msg = f"❌ Ошибка при проверке Firebase API: {str(e)}"
             self.errors.append(error_msg)
             logger.error(error_msg)
             return False
@@ -113,21 +113,28 @@ class APIChecker:
         """Проверка всех API"""
         self.errors = []  # Очищаем список ошибок перед проверкой
         
-        # Проверяем все API
-        telegram_ok = self.check_telegram_api(config['TELEGRAM_BOT_TOKEN'])
-        google_ok = self.check_google_cloud(config['GOOGLE_APPLICATION_CREDENTIALS'])
-        firebase_ok = self.check_firebase(
-            config['FIREBASE_CREDENTIALS_PATH'],
-            config['FIREBASE_DATABASE_URL']
-        )
+        try:
+            # Проверяем все API
+            telegram_ok = self.check_telegram_api(config['TELEGRAM_BOT_TOKEN'])
+            google_ok = self.check_google_cloud(config['GOOGLE_APPLICATION_CREDENTIALS'])
+            firebase_ok = self.check_firebase(
+                config['FIREBASE_CREDENTIALS_PATH'],
+                config['FIREBASE_DATABASE_URL']
+            )
 
-        # Если все проверки прошли успешно
-        if telegram_ok and google_ok and firebase_ok:
-            logger.info("✅ Все API успешно проверены и работают")
-            return True, []
-        
-        # Если есть ошибки
-        return False, self.errors
+            # Если все проверки прошли успешно
+            if telegram_ok and google_ok and firebase_ok:
+                logger.info("✅ Все API успешно проверены и работают")
+                return True, []
+            
+            # Если есть ошибки
+            return False, self.errors
+
+        except Exception as e:
+            error_msg = f"❌ Критическая ошибка при проверке API: {str(e)}"
+            self.errors.append(error_msg)
+            logger.error(error_msg)
+            return False, self.errors
 
 def format_error_message(errors: List[str]) -> str:
     """Форматирование сообщения об ошибках для вывода"""
