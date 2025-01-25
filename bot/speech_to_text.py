@@ -51,7 +51,7 @@ def transcribe_audio(file_path: str) -> str:
         # Создаем конфигурацию
         logger.debug("Создание конфигурации распознавания")
         config = speech.RecognitionConfig(
-            encoding=speech.RecognitionConfig.AudioEncoding.OGG_OPUS,
+            encoding=speech.RecognitionConfig.AudioEncoding.ENCODING_UNSPECIFIED,
             sample_rate_hertz=SPEECH_TO_TEXT_CONFIG['sample_rate_hertz'],
             language_code=SPEECH_TO_TEXT_CONFIG['language_code'],
             enable_automatic_punctuation=True,

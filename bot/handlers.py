@@ -4,6 +4,7 @@ from datetime import datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
 from telegram.ext import CallbackContext
 from google.cloud import language_v1
+from google.api_core.exceptions import InvalidArgument
 from .firebase_manager import FirebaseManager
 from .speech_to_text import transcribe_audio
 from .config import MAX_AUDIO_DURATION
@@ -45,6 +46,56 @@ def start_command(update: Update, context: CallbackContext):
     )
 
 def analyze_text_sentiment(text: str) -> tuple:
+    """
+    Анализ настроения текста с помощью Google Natural Language API
+
+    Args:
+        text (str): Текст для анализа
+
+    Returns:
+        tuple: (sentiment_score, sentiment_magnitude)
+    """
+    try:
+        logger.info("Начало анализа настроения текста")
+        logger.debug(f"Исходный текст: {text[:100]}...")
+
+        client = language_v1.LanguageServiceClient()
+        
+        # Сначала пытаемся анализировать на русском
+        try:
+            document = language_v1.Document(
+                content=text,
+                type_=language_v1.Document.Type.PLAIN_TEXT,
+                language='ru'
+            )
+            sentiment = client.analyze_sentiment(
+                request={'document': document}
+            ).document_sentiment
+            return sentiment.score, sentiment.magnitude
+        except InvalidArgument:
+            # Если русский не поддерживается, переводим на английский
+            from google.cloud import translate_v2 as translate
+            translate_client = translate.Client()
+            translation = translate_client.translate(
+                text,
+                target_language='en',
+                source_language='ru'
+            )
+            translated_text = translation['translatedText']
+            
+            document = language_v1.Document(
+                content=translated_text,
+                type_=language_v1.Document.Type.PLAIN_TEXT,
+                language='en'
+            )
+            sentiment = client.analyze_sentiment(
+                request={'document': document}
+            ).document_sentiment
+            return sentiment.score, sentiment.magnitude
+
+    except Exception as e:
+        logger.error(f"Ошибка при анализе настроения: {str(e)}", exc_info=True)
+        return 0, 0
     """
     Анализ настроения текста с помощью Google Natural Language API
     
