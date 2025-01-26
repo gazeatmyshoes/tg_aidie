@@ -1,42 +1,63 @@
-# TGAidie
+# TGAidie - Telegram бот для ведения дневника и анализа настроения
 
-This is a Telegram bot for diary and mood tracking. It uses Yandex Natural Language API for sentiment analysis and supports 5 languages: russian, english, german, french, and spanish.
+Этот Telegram бот помогает вести дневник и анализировать настроение с использованием Yandex Natural Language API. Поддерживает 5 языков: русский, английский, немецкий, французский и испанский.
 
-## Setup
+## Настройка
 
-To set up the bot, you need to create a Zadex API key and configure the following environment variables:
+Для запуска бота необходимо настроить следующие переменные окружения:
 
-1. Create a Zadex API key at https://cloud.yandex.com/.
+1. **Telegram Bot Token**
+   - Создайте бота через [@BotFather](https://t.me/BotFather)
+   - Получите токен и добавьте его в `.env` файл:
+     ```bash
+     TELEGRAM_BOT_TOKEN=ваш_токен_бота
+     ```
 
-2. Add the following environment variables to your `.env` file:
+2. **Google Cloud**
+   - Создайте проект в [Google Cloud Console](https://console.cloud.google.com/)
+   - Скачайте файл с учетными данными (JSON)
+   - Укажите путь к файлу и ID проекта:
+     ```bash
+     GOOGLE_CLOUD_PROJECT_ID=ваш_google_cloud_project_id
+     GOOGLE_APPLICATION_CREDENTIALS=путь/к/вашему/google-credentials.json
+     ```
 
-   ```bash
-   YANDEX_API_KEY=your_yandex_api_key
-   TELEGRAM_BOT_TOKEN=your_telegram_bot_token
-   GOOGLE_APPLICATION_CREDENTIALS=your_google_application_credentials
-   FIREBASE_DATABASE_URL=your_firebase_database_url
-   ```
+3. **Firebase**
+   - Создайте проект в [Firebase Console](https://console.firebase.google.com/)
+   - Скачайте файл с учетными данными (JSON)
+   - Укажите URL базы данных и путь к файлу:
+     ```bash
+     FIREBASE_DATABASE_URL=ваш_firebase_database_url
+     FIREBASE_CREDENTIALS_PATH=путь/к/вашему/firebase-credentials.json
+     ```
 
-3. Run the bot using the following command:
+4. **Запуск бота**
+   - Установите зависимости:
+     ```bash
+     pip install -r requirements.txt
+     ```
+   - Запустите бота:
+     ```bash
+     python3 run_bot.py
+     ```
 
-   ```bash
-   python3.8 run_bot.py
-   ```
+## Поддерживаемые языки
 
-## Language Support
+Бот поддерживает следующие языки:
 
-The bot supports the following languages:
+- Русский (`ru`)
+- Английский (`en`)
+- Немецкий (`de`)
+- Французский (`fr`)
+- Испанский (`es`)
 
-- Russian (`ru`)
-- English (`en`)
-- German (`de`)
-- French (`ru`)
-- Spanish (`es`)
+## Разработка
 
-## Contributing
+1. Форкните репозиторий
+2. Создайте ветку для ваших изменений
+3. Сделайте pull request с описанием изменений
+4. Убедитесь, что все тесты проходят успешно
 
-Please fork the repository and create a pull request for any changes you would like to make. Make sure to update the changelog and test your changes.
+## Лицензия
 
-## License
-
-This project is open-source and licensed under the MIT License. See the `LICENSE` file for more information.
+Проект распространяется под лицензией MIT. Подробнее см. в файле `LICENSE`.
